@@ -9,13 +9,13 @@ my $score = 0;
 my $totalScore = 0;
 my $defaultIncrement = 1.15;
 
-my @suffixes = ('', qw(K M B T Qa Qt Sx));
+my @suffixes = ('', qw(K M B T Qa Qt Sx Sp Oc Nn Dc UDc DDc TDc QaDC QtDC ));
 my $buildings = [
-	{ name => 'A', baseCost => 1e1, amplify => 1.1 },
-	{ name => 'B', baseCost => 1e2, amplify => 1.2 },
-	{ name => 'C', baseCost => 1e4, amplify => 1.3 },
-	{ name => 'D', baseCost => 1e7, amplify => 1.4 },
-	{ name => 'E', baseCost => 1e11, amplify => 1.5 },
+	{ name => 'A', baseCost => 1e1, amplify => 1e-1 },
+	{ name => 'B', baseCost => 1e3, amplify => 1e0 },
+	{ name => 'C', baseCost => 1e6, amplify => 1e2 },
+	{ name => 'D', baseCost => 1e10, amplify => 1e5 },
+	{ name => 'E', baseCost => 1e15, amplify => 1e9 },
 ];
 
 for my $bldg (@$buildings)
@@ -42,7 +42,7 @@ sub CalculateClickPower
 	my $ret = 1;
 	for my $bldg (@$buildings)
 	{
-		$ret *= $bldg->{amplify} ** $bldg->{owned};
+		$ret += $bldg->{amplify} * $bldg->{owned};
 	}
 	$ret;
 }
