@@ -50,14 +50,14 @@ defmodule IncrementalGame do
 		end
 	end
 	
-	def playRound() do
-		playRound(%{
+	def mainLoop() do
+		mainLoop(%{
 			score: 0,
-			buildings: Enum.map(@buildings, fn(bldg) -> Map.put(bldg, :owned, 0) end)
+			buildings: Enum.map(@buildings, fn(bldg) -> Map.put(bldg, :owned, 0) end),
+			ioTask: nil,
 		})
 	end
-
-	def playRound(%{score: score, buildings: buildings}) do
+	def mainLoop(%{score: score, buildings: buildings, ioTask: ioTask}) do
 		clearScreen()
 
 #%{score: score, buildings: buildings} |> inspect |> IO.puts
@@ -73,13 +73,24 @@ defmodule IncrementalGame do
 		clickPower = calculateClickPower(buildings)
 		IO.puts "Score: \t#{printNumber score}"
 		IO.puts "Click Power: \t#{printNumber clickPower}"
-		cmd = IO.gets ">"
+		IO.write ">"
+
+		if ioTask == nil do
+		  ioTask = Task.async(fn -> IO.gets "" end)
+		end
+		cmd = case Task.yield(ioTask, 1_000) do
+			{:ok, cmd} -> cmd
+			nil -> "\n"
+		end
+		unless cmd == nil do # if line was actually retrieved, restart IO task.
+			ioTask = nil
+		end
 		score = score + clickPower
 		
 		Enum.reduce(
 			:lists.reverse(buildings),
-			%{score: score, buildings: []},
-			fn(bldg, %{score: score, buildings: newbuildings}) ->
+			%{score: score, buildings: [], ioTask: ioTask},
+			fn(bldg, acc = %{score: score, buildings: newbuildings}) ->
 				qty = case(Regex.run ~r"\b((\d+)\s*)?#{bldg.name}\b"iu, cmd) do
 					[_, _, qtyText] ->
 						case String.to_integer qtyText do
@@ -90,11 +101,11 @@ defmodule IncrementalGame do
 					_ -> 0 # nil, or any other permutation I haven't accounted for indicate no copies of presently inspected building are being bought.
 				end
 				[score, bldg] = buyBuildings(qty, score, bldg)
-				%{score: score, buildings: [bldg | newbuildings]}
+				%{acc | score: score, buildings: [bldg | newbuildings]}
 			end
-		) |> playRound()
+		) |> mainLoop()
 
 	end
 end
 
-IncrementalGame.playRound()
+IncrementalGame.mainLoop()
